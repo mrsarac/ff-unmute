@@ -1,11 +1,10 @@
 use fframes::{
     CombinedMediaProvider, EncoderOptions, MediaDirectory, MediaProvider, RenderOptions,
-    StaticMediaProvider, cli,
+    StaticMediaProvider,
 };
-use fframes_skia_renderer::{
-    SkiaFFramesRenderer, SkiaPipelineConcurrencyPolicy, SkiaPipelineConfig, metal::SkiaMetalCtx,
-};
-use flat::{FlatMedia, FlatVideo, HEIGHT, WIDTH};
+#[path = "../../tools/backend.rs"]
+mod backend;
+use flat::{FlatMedia, FlatVideo};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
@@ -15,9 +14,8 @@ fn main() -> ExitCode {
     let pass = dir.process_media_source().expect("out/pass media");
     let media = CombinedMediaProvider::from([&fonts as &dyn MediaProvider, &pass]);
     let video = FlatVideo::new();
-    let gpu = SkiaMetalCtx::new(WIDTH, HEIGHT).expect("GPU context");
 
-    cli::new(
+    backend::run(
         &video,
         RenderOptions {
             media: Some(&media),
@@ -30,18 +28,7 @@ fn main() -> ExitCode {
             },
             ..Default::default()
         },
+        "out/pass/flat.mp4",
+        false,
     )
-    .backend(
-        SkiaFFramesRenderer::new_metal(
-            &gpu,
-            SkiaPipelineConfig {
-                concurrency_policy: SkiaPipelineConcurrencyPolicy::MaxPerformance,
-                ..Default::default()
-            },
-        )
-        .expect("skia renderer"),
-    )
-    .preview(fframes_native_player::cli_preview)
-    .default_output("out/pass/flat.mp4")
-    .run()
 }
